@@ -470,24 +470,12 @@ function showToast(msg){
 
 // Popups don't suffer from the storage-partitioning problem that breaks
 // signInWithRedirect across the firebaseapp.com <-> your-site.github.io
-// boundary in modern Chrome/Edge, so popup is now the primary path.
-// Redirect is kept only as a fallback for mobile / blocked popups.
-function isLikelyMobile(){
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
+// boundary in modern Chrome/Edge — this affects mobile Chrome too, not
+// just desktop. So popup is now the primary path everywhere. Redirect
+// is kept only as a genuine fallback if the browser blocks the popup.
 async function handleAuthClick(){
   if(currentUser){
     signOut(auth).catch(() => {});
-    return;
-  }
-
-  if(isLikelyMobile()){
-    showToast('Redirecting to Google sign-in…');
-    signInWithRedirect(auth, googleProvider).catch((e) => {
-      console.error('Sign-in error', e);
-      showToast('Sign-in failed — try again');
-    });
     return;
   }
 
