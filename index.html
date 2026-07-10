@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moni's Green Corner — SUST Plant Nursery</title>
+<meta name="theme-color" content="#1F3D2E">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+:root{
+  --bg:#F4F1E6;
+  --surface:#FFFFFF;
+  --ink:#1E2B22;
+  --ink-soft:#4B5A4F;
+  --pine:#1F3D2E;
+  --pine-deep:#152A20;
+  --sprout:#6E8F3E;
+  --sprout-deep:#56712F;
+  --clay:#A85D3B;
+  --line:#DCD5BF;
+  --tag-hole:#EDE8D6;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+/* header */
+header.hero{
+  background:linear-gradient(180deg,var(--pine) 0%,var(--pine-deep) 100%);
+  color:#F4F1E6;
+  padding:56px 20px 72px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-inner{max-width:820px;margin:0 auto;position:relative;z-index:2;}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:#B9CBA0;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.eyebrow::before{content:'';width:18px;height:1px;background:#B9CBA0;display:inline-block;}
+header.hero h1{font-size:clamp(32px,6vw,52px);line-height:1.05;font-weight:600;letter-spacing:-0.01em;}
+header.hero p.sub{
+  margin-top:14px;max-width:480px;color:#D9E4C9;font-size:16px;line-height:1.6;
+}
+.hero-vine{position:absolute;right:-40px;top:-20px;width:280px;opacity:0.5;z-index:1;}
+.hero-vine svg{width:100%;height:auto;}
+
+/* wavy divider like a leaf vein */
+.divider{
+  height:26px;overflow:hidden;line-height:0;margin-top:-2px;
+}
+.divider svg{width:100%;height:26px;display:block;}
+
+/* nav / actions bar */
+.actions-bar{
+  max-width:1000px;margin:-30px auto 0;padding:0 20px;position:relative;z-index:3;
+  display:flex;gap:12px;flex-wrap:wrap;
+}
+.chip{
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:10px 18px;font-size:14px;font-weight:500;color:var(--ink);
+  box-shadow:0 3px 10px rgba(20,40,25,0.08);cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+}
+.chip:hover{border-color:var(--sprout);}
+.chip.primary{background:var(--sprout);color:#fff;border-color:var(--sprout);}
+.chip.primary:hover{background:var(--sprout-deep);}
+.chip.auth{margin-left:auto;}
+.chip.auth img{width:20px;height:20px;border-radius:50%;}
+.auth-hint{
+  max-width:1000px;margin:10px auto 0;padding:0 20px;font-size:12px;color:var(--ink-soft);
+  display:none;
+}
+.auth-hint.show{display:block;}
+
+/* main grid */
+main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
+.section-label{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:18px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.empty-state{
+  border:1px dashed var(--line);border-radius:14px;padding:48px 20px;text-align:center;
+  color:var(--ink-soft);
+}
+
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px;
+}
+
+/* plant tag card */
+.card{
+  background:var(--surface);border-radius:4px 4px 14px 14px;
+  box-shadow:0 2px 0 var(--line),0 10px 24px -12px rgba(20,40,25,0.25);
+  position:relative;padding-top:26px;transition:transform .18s ease, box-shadow .18s ease;
+}
+.card:hover{transform:translateY(-3px);box-shadow:0 2px 0 var(--line),0 16px 30px -12px rgba(20,40,25,0.3);}
+.card::before{ /* hole punch */
+  content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  width:14px;height:14px;border-radius:50%;background:var(--bg);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.15);
+}
+.card .string{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);width:1px;height:10px;
+  background:var(--ink-soft);opacity:0.35;
+}
+.card-icon{
+  height:120px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center, #EFECDD 0%, #F4F1E6 70%);
+  margin:0 14px;border-radius:8px;
+}
+.card-icon svg{width:76px;height:76px;}
+.card-body{padding:16px 18px 18px;}
+.card-body h3{font-size:19px;font-weight:600;color:var(--pine-deep);line-height:1.2;}
+.care-note{font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.5;min-height:32px;}
+.card-meta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;}
+.price{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:17px;color:var(--clay);}
+.status{
+  font-size:11px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:999px;
+  text-transform:uppercase;letter-spacing:0.04em;
+}
+.status.available{background:#E7EFDA;color:var(--sprout-deep);}
+.status.booked{background:#F0E4DC;color:var(--clay);}
+.order-btn{
+  margin-top:14px;width:100%;padding:11px;border:none;border-radius:8px;
+  background:var(--pine);color:#F4F1E6;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;
+  cursor:pointer;transition:background .15s ease;
+}
+.order-btn:hover{background:var(--pine-deep);}
+.order-btn:disabled{background:#CFC9B6;color:#8B8672;cursor:not-allowed;}
+.remove-link{
+  display:block;text-align:center;font-size:12px;color:var(--ink-soft);margin-top:8px;cursor:pointer;
+  text-decoration:underline;text-decoration-color:var(--line);
+}
+
+/* modal / form */
+.overlay{
+  position:fixed;inset:0;background:rgba(21,42,32,0.55);display:none;
+  align-items:center;justify-content:center;padding:20px;z-index:50;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--surface);border-radius:16px;max-width:420px;width:100%;
+  padding:28px 26px 26px;max-height:90vh;overflow-y:auto;
+}
+.modal h2{font-size:22px;color:var(--pine-deep);margin-bottom:4px;}
+.modal p.hint{font-size:13px;color:var(--ink-soft);margin:6px 0 18px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+  font-family:'Inter',sans-serif;font-size:14px;background:#FBFAF4;color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:56px;}
+.field-row{display:flex;gap:10px;}
+.field-row .field{flex:1;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.btn{padding:11px 16px;border-radius:8px;border:none;font-weight:500;font-size:14px;cursor:pointer;flex:1;}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-soft);}
+.btn.solid{background:var(--sprout);color:#fff;}
+.btn.solid:hover{background:var(--sprout-deep);}
+.error-msg{color:#A83B3B;font-size:13px;margin-top:8px;display:none;}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--pine-deep);color:#F4F1E6;padding:12px 22px;border-radius:999px;
+  font-size:14px;box-shadow:0 8px 20px rgba(0,0,0,0.25);opacity:0;pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease;z-index:60;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+footer{
+  text-align:center;padding:30px 20px 50px;color:var(--ink-soft);font-size:13px;
+}
+footer a{color:var(--sprout-deep);}
+
+@media (max-width:480px){
+  .actions-bar{margin-top:-24px;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  .card-icon{height:90px;}
+  .card-icon svg{width:58px;height:58px;}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-vine" aria-hidden="true">
+    <svg viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M150 0 C 130 60, 170 90, 140 150 C 110 210, 160 240, 130 300" stroke="#3F5F45" stroke-width="2" fill="none" opacity="0.6"/>
+      <ellipse cx="150" cy="0" rx="14" ry="8" fill="#4E7A45" opacity="0.5" transform="rotate(30 150 0)"/>
+      <ellipse cx="140" cy="150" rx="16" ry="9" fill="#5A8A4E" opacity="0.5" transform="rotate(-20 140 150)"/>
+      <ellipse cx="130" cy="300" rx="15" ry="8" fill="#4E7A45" opacity="0.5" transform="rotate(15 130 300)"/>
+    </svg>
+  </div>
+  <div class="hero-inner">
+    <div class="eyebrow">SUST Campus Nursery</div>
+    <h1>Moni's Green Corner</h1>
+    <p class="sub">Small pots, big personalities — cuttings and starter plants grown and sold from Third Ladies' Hall. Pick your favourite below and message to reserve.</p>
+  </div>
+</header>
+<div class="divider">
+  <svg viewBox="0 0 1200 26" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,14 C150,26 350,0 600,14 C850,28 1050,2 1200,14 L1200,0 L0,0 Z" fill="#F4F1E6"/>
+  </svg>
+</div>
+
+<div class="actions-bar">
+  <div class="chip primary" id="addChip" style="display:none;" onclick="openAddModal()">+ Add a plant</div>
+  <div class="chip" onclick="scrollToGrid()">Browse all</div>
+  <div class="chip auth" id="authChip" onclick="handleAuthClick()">Sign in</div>
+</div>
+<div class="auth-hint" id="authHint">Signed in, but this account can't edit the shop. Ask Moni to add your email to the editor list.</div>
+
+<main>
+  <div class="section-label">Available now</div>
+  <div id="grid" class="grid"></div>
+  <div id="emptyState" class="empty-state" style="display:none;">
+    No plants listed yet — tap <strong>+ Add a plant</strong> above to list the first one.
+  </div>
+</main>
+
+<footer>
+  Made with care for a fellow SUST plant lover 🌱 — replace the order button link with your own WhatsApp/Messenger number in the code.
+</footer>
+
+<!-- Add plant modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Add a new plant</h2>
+    <p class="hint">This updates the shop for everyone who opens this link.</p>
+    <div class="field">
+      <label>Plant name</label>
+      <input id="f-name" type="text" placeholder="e.g. Marble Queen Pothos">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Price (৳)</label>
+        <input id="f-price" type="number" placeholder="60">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="f-category">
+          <option value="vine">Trailing / vine</option>
+          <option value="succulent">Succulent / cactus</option>
+          <option value="snake">Snake plant</option>
+          <option value="leafy">Leafy / bushy</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Care note (shown on card)</label>
+      <textarea id="f-note" placeholder="e.g. Loves indirect light, water weekly"></textarea>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="available">Available</option>
+        <option value="booked">Booked / sold out</option>
+      </select>
+    </div>
+    <div class="error-msg" id="formError">Please add a plant name and price.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn solid" onclick="submitPlant()">Add to shop</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// --- Fill these in with your own Firebase project's config (see setup guide) ---
+// Import the functions you need from the SDKs you need
+
+import { initializeApp } from "firebase/app";
+
+import { getAnalytics } from "firebase/analytics";
+
+// TODO: Add SDKs for Firebase products that you want to use
+
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyDYnu5xmgeJp8rw15VVsm-0INcGJFefAPA",
+
+  authDomain: "moni-s-green-corner.firebaseapp.com",
+
+  projectId: "moni-s-green-corner",
+
+  storageBucket: "moni-s-green-corner.firebasestorage.app",
+
+  messagingSenderId: "933334363324",
+
+  appId: "1:933334363324:web:7033a6f1810953b716b4b9",
+
+  measurementId: "G-08SEVWX7WF"
+
+};
+
+// Initialize Firebase
+
+const app = initializeApp(firebaseConfig);
+
+const analytics = getAnalytics(app);
+
+// --- The only two accounts allowed to add/remove plants. ---
+// Use the exact Gmail address each person signs in with.
+const EDITOR_EMAILS = [
+  "tanmaz09@gmail.com",
+  "purbasha.sinha.moni@gmail.com"
+];
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+const plantsDocRef = doc(db, "shop", "plants-list");
+
+let currentUser = null;
+let isEditor = false;
+
+const ORDER_LINK = "https://wa.me/8801567948771"; 
+
+const ICONS = {
+  vine: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 90 C50 70 30 65 30 45 C30 25 50 25 50 45" stroke="#5A8A4E" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="30" cy="42" rx="14" ry="9" fill="#7FA33D" transform="rotate(-30 30 42)"/><ellipse cx="50" cy="24" rx="14" ry="9" fill="#6E8F3E" transform="rotate(20 50 24)"/><ellipse cx="46" cy="66" rx="12" ry="8" fill="#87A85A" transform="rotate(-10 46 66)"/></svg>`,
+  succulent: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="#6E8F3E"><path d="M50 60 L52 15 L58 60 Z"/><path d="M50 60 L20 30 L52 55 Z"/><path d="M50 60 L80 30 L48 55 Z"/><path d="M50 60 L25 55 L48 62 Z"/><path d="M50 60 L75 55 L52 62 Z"/></g><ellipse cx="50" cy="72" rx="30" ry="10" fill="#B9AE86"/></svg>`,
+  snake: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="#4A6B3C"><path d="M40 85 C35 55 42 30 38 10 C48 30 44 55 48 85 Z"/><path d="M55 85 C52 50 60 28 56 8 C66 30 60 55 63 85 Z"/><path d="M28 85 C27 60 32 40 29 22 C37 40 34 60 36 85 Z"/></g><ellipse cx="45" cy="88" rx="26" ry="8" fill="#B9AE86"/></svg>`,
+  leafy: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="#6E8F3E"><ellipse cx="50" cy="35" rx="16" ry="24"/><ellipse cx="30" cy="50" rx="15" ry="22" transform="rotate(-25 30 50)"/><ellipse cx="70" cy="50" rx="15" ry="22" transform="rotate(25 70 50)"/></g><rect x="46" y="55" width="6" height="25" fill="#5A7A45"/><ellipse cx="50" cy="82" rx="24" ry="8" fill="#B9AE86"/></svg>`
+};
+
+const DEFAULT_PLANTS = [
+  {id:'seed1', name:"N'joy Pothos", price:60, category:'vine', note:'Bright variegated leaves, indirect light, easy care.', status:'available'},
+  {id:'seed2', name:'Money Plant', price:40, category:'vine', note:'Classic trailing vine, thrives almost anywhere.', status:'available'},
+  {id:'seed3', name:'Snake Plant', price:80, category:'snake', note:'Very low maintenance, comes with a small pup.', status:'available'},
+  {id:'seed4', name:'Star Cactus', price:30, category:'succulent', note:'Compact and sunny-windowsill friendly.', status:'available'}
+];
+
+let plants = [];
+
+function loadPlants(){
+  onSnapshot(plantsDocRef, async (snap) => {
+    if(snap.exists() && Array.isArray(snap.data().plants)){
+      plants = snap.data().plants;
+    } else {
+      plants = DEFAULT_PLANTS;
+      await savePlants();
+    }
+    render();
+  }, (err) => {
+    console.error('Firestore read error', err);
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').textContent = 'Could not connect to the shop database — check the Firebase setup.';
+  });
+}
+
+async function savePlants(){
+  try{
+    await setDoc(plantsDocRef, { plants });
+  }catch(e){
+    console.error('Storage error', e);
+    showToast('Could not save — check your connection');
+  }
+}
+
+function render(){
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+  grid.innerHTML = '';
+  if(plants.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  plants.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="string"></div>
+      <div class="card-icon">${ICONS[p.category] || ICONS.leafy}</div>
+      <div class="card-body">
+        <h3>${escapeHtml(p.name)}</h3>
+        <div class="care-note">${escapeHtml(p.note || '')}</div>
+        <div class="card-meta">
+          <span class="price mono">৳${p.price}</span>
+          <span class="status ${p.status}">${p.status === 'available' ? 'Available' : 'Booked'}</span>
+        </div>
+        <button class="order-btn" ${p.status !== 'available' ? 'disabled' : ''} onclick="orderPlant('${p.id}')">
+          ${p.status === 'available' ? 'Message to order' : 'Currently booked'}
+        </button>
+        ${isEditor ? `<span class="remove-link" onclick="removePlant('${p.id}')">Remove listing</span>` : ''}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function orderPlant(id){
+  const p = plants.find(x => x.id === id);
+  window.open(ORDER_LINK, '_blank');
+  showToast(`Opening chat to ask about ${p ? p.name : 'this plant'}`);
+}
+
+function openAddModal(){
+  if(!isEditor){
+    showToast(currentUser ? 'This account can\'t edit the shop' : 'Sign in first to add a plant');
+    return;
+  }
+  document.getElementById('overlay').classList.add('open');
+}
+function closeAddModal(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('formError').style.display = 'none';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-note').value = '';
+}
+
+async function submitPlant(){
+  if(!isEditor){ showToast('Sign in as an editor to add plants'); return; }
+  const name = document.getElementById('f-name').value.trim();
+  const price = document.getElementById('f-price').value;
+  const category = document.getElementById('f-category').value;
+  const note = document.getElementById('f-note').value.trim();
+  const status = document.getElementById('f-status').value;
+
+  if(!name || !price){
+    document.getElementById('formError').style.display = 'block';
+    return;
+  }
+  const newPlant = {
+    id: 'p' + Date.now(),
+    name, price: Number(price), category, note, status
+  };
+  plants.unshift(newPlant);
+  await savePlants();
+  render();
+  closeAddModal();
+  showToast('Plant added to the shop');
+}
+
+async function removePlant(id){
+  if(!isEditor){ showToast('Sign in as an editor to remove plants'); return; }
+  plants = plants.filter(p => p.id !== id);
+  await savePlants();
+  render();
+  showToast('Listing removed');
+}
+
+function scrollToGrid(){
+  document.getElementById('grid').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function handleAuthClick(){
+  if(currentUser){
+    signOut(auth).catch(() => {});
+  }else{
+    signInWithPopup(auth, googleProvider).catch((e) => {
+      console.error('Sign-in error', e);
+      showToast('Sign-in failed — try again');
+    });
+  }
+}
+
+function updateAuthUI(){
+  const chip = document.getElementById('authChip');
+  const addChip = document.getElementById('addChip');
+  const hint = document.getElementById('authHint');
+
+  if(currentUser){
+    chip.textContent = isEditor ? `${currentUser.displayName || currentUser.email} · Sign out` : 'Sign out';
+    addChip.style.display = isEditor ? 'flex' : 'none';
+    hint.classList.toggle('show', !isEditor);
+  }else{
+    chip.textContent = 'Sign in';
+    addChip.style.display = 'none';
+    hint.classList.remove('show');
+  }
+}
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  isEditor = !!user && !!user.email && EDITOR_EMAILS.includes(user.email);
+  updateAuthUI();
+  render();
+});
+
+window.openAddModal = openAddModal;
+window.closeAddModal = closeAddModal;
+window.submitPlant = submitPlant;
+window.orderPlant = orderPlant;
+window.removePlant = removePlant;
+window.scrollToGrid = scrollToGrid;
+window.handleAuthClick = handleAuthClick;
+
+loadPlants();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
