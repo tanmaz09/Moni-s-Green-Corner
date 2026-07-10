@@ -284,7 +284,7 @@ footer a{color:var(--sprout-deep);}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // --- Your Firebase project's config ---
 const firebaseConfig = {
@@ -468,17 +468,45 @@ function showToast(msg){
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-function handleAuthClick(){
+// Popups don't suffer from the storage-partitioning problem that breaks
+// signInWithRedirect across the firebaseapp.com <-> your-site.github.io
+// boundary in modern Chrome/Edge, so popup is now the primary path.
+// Redirect is kept only as a fallback for mobile / blocked popups.
+function isLikelyMobile(){
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+async function handleAuthClick(){
   if(currentUser){
     signOut(auth).catch(() => {});
-  }else{
-    // signInWithPopup is unreliable on mobile browsers (popups get
-    // blocked or killed). signInWithRedirect works reliably everywhere.
+    return;
+  }
+
+  if(isLikelyMobile()){
     showToast('Redirecting to Google sign-in…');
     signInWithRedirect(auth, googleProvider).catch((e) => {
       console.error('Sign-in error', e);
       showToast('Sign-in failed — try again');
     });
+    return;
+  }
+
+  try{
+    await signInWithPopup(auth, googleProvider);
+    // onAuthStateChanged picks up the result and updates the UI.
+  }catch(e){
+    console.error('Popup sign-in error', e);
+    if(e && (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request')){
+      showToast('Popup blocked — trying redirect instead…');
+      signInWithRedirect(auth, googleProvider).catch((e2) => {
+        console.error('Redirect sign-in error', e2);
+        showToast('Sign-in failed — try again');
+      });
+    }else if(e && e.code === 'auth/popup-closed-by-user'){
+      // User closed it themselves — no error toast needed.
+    }else{
+      showToast('Sign-in failed — try again');
+    }
   }
 }
 
