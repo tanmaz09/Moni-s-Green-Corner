@@ -284,7 +284,7 @@ footer a{color:var(--sprout-deep);}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // --- Your Firebase project's config ---
 const firebaseConfig = {
@@ -336,8 +336,13 @@ function loadPlants(){
     if(snap.exists() && Array.isArray(snap.data().plants)){
       plants = snap.data().plants;
     } else {
+      // No document yet. Only an editor is allowed to seed it —
+      // anonymous visitors must never attempt a write, or Firestore
+      // will reject it and trigger a false "could not save" toast.
       plants = DEFAULT_PLANTS;
-      await savePlants();
+      if(isEditor){
+        await savePlants();
+      }
     }
     render();
   }, (err) => {
@@ -348,6 +353,12 @@ function loadPlants(){
 }
 
 async function savePlants(){
+  if(!isEditor){
+    // Safety net: never let a non-editor attempt a write.
+    // Firestore rules should also enforce this server-side.
+    console.warn('Blocked save: current user is not an editor');
+    return;
+  }
   try{
     await setDoc(plantsDocRef, { plants });
   }catch(e){
@@ -461,7 +472,10 @@ function handleAuthClick(){
   if(currentUser){
     signOut(auth).catch(() => {});
   }else{
-    signInWithPopup(auth, googleProvider).catch((e) => {
+    // signInWithPopup is unreliable on mobile browsers (popups get
+    // blocked or killed). signInWithRedirect works reliably everywhere.
+    showToast('Redirecting to Google sign-in…');
+    signInWithRedirect(auth, googleProvider).catch((e) => {
       console.error('Sign-in error', e);
       showToast('Sign-in failed — try again');
     });
@@ -483,6 +497,12 @@ function updateAuthUI(){
     hint.classList.remove('show');
   }
 }
+
+// Pick up the result of a redirect-based sign-in, if we just came back from one.
+getRedirectResult(auth).catch((e) => {
+  console.error('Redirect sign-in error', e);
+  showToast('Sign-in failed — try again');
+});
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
