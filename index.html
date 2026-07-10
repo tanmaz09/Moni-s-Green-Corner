@@ -286,44 +286,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// --- Fill these in with your own Firebase project's config (see setup guide) ---
-// Import the functions you need from the SDKs you need
-
-import { initializeApp } from "firebase/app";
-
-import { getAnalytics } from "firebase/analytics";
-
-// TODO: Add SDKs for Firebase products that you want to use
-
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
+// --- Your Firebase project's config ---
 const firebaseConfig = {
-
   apiKey: "AIzaSyDYnu5xmgeJp8rw15VVsm-0INcGJFefAPA",
-
   authDomain: "moni-s-green-corner.firebaseapp.com",
-
   projectId: "moni-s-green-corner",
-
   storageBucket: "moni-s-green-corner.firebasestorage.app",
-
   messagingSenderId: "933334363324",
-
   appId: "1:933334363324:web:7033a6f1810953b716b4b9",
-
   measurementId: "G-08SEVWX7WF"
-
 };
-
-// Initialize Firebase
-
-const app = initializeApp(firebaseConfig);
-
-const analytics = getAnalytics(app);
 
 // --- The only two accounts allowed to add/remove plants. ---
 // Use the exact Gmail address each person signs in with.
