@@ -134,6 +134,17 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
 }
 .status.available{background:#E7EFDA;color:var(--sprout-deep);}
 .status.booked{background:#F0E4DC;color:var(--clay);}
+.status.custom{background:#EDE8D6;color:var(--ink-soft);}
+.qty-stepper{
+  margin-top:14px;display:flex;align-items:center;justify-content:space-between;
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+}
+.qty-btn{
+  width:28px;height:28px;border:none;border-radius:6px;background:var(--pine);color:#fff;
+  font-size:16px;line-height:1;cursor:pointer;
+}
+.qty-btn:hover{background:var(--pine-deep);}
+.qty-count{font-size:13px;color:var(--ink-soft);}
 .order-btn{
   margin-top:14px;width:100%;padding:11px;border:none;border-radius:8px;
   background:var(--pine);color:#F4F1E6;font-family:'Inter',sans-serif;font-weight:500;font-size:14px;
@@ -245,6 +256,11 @@ footer a{color:var(--sprout-deep);}
       <label>Plant name</label>
       <input id="f-name" type="text" placeholder="e.g. Marble Queen Pothos">
     </div>
+    <div class="field">
+      <label>Photo (optional — default icon used if skipped)</label>
+      <input id="f-image" type="file" accept="image/*">
+      <div id="f-image-preview" style="display:none;margin-top:8px;"><img alt="Preview" style="max-width:100px;max-height:100px;border-radius:8px;"></div>
+    </div>
     <div class="field-row">
       <div class="field">
         <label>Price (৳)</label>
@@ -252,12 +268,8 @@ footer a{color:var(--sprout-deep);}
       </div>
       <div class="field">
         <label>Category</label>
-        <select id="f-category">
-          <option value="vine">Trailing / vine</option>
-          <option value="succulent">Succulent / cactus</option>
-          <option value="snake">Snake plant</option>
-          <option value="leafy">Leafy / bushy</option>
-        </select>
+        <select id="f-category" onchange="handleCategorySelectChange()"></select>
+        <input id="f-category-new" type="text" placeholder="New category name" style="display:none;margin-top:8px;">
       </div>
     </div>
     <div class="field">
@@ -266,15 +278,28 @@ footer a{color:var(--sprout-deep);}
     </div>
     <div class="field">
       <label>Status</label>
-      <select id="f-status">
-        <option value="available">Available</option>
-        <option value="booked">Booked / sold out</option>
-      </select>
+      <select id="f-status" onchange="handleStatusSelectChange()"></select>
+      <input id="f-status-new" type="text" placeholder="New status label" style="display:none;margin-top:8px;">
     </div>
     <div class="error-msg" id="formError">Please add a plant name and price.</div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeAddModal()">Cancel</button>
       <button class="btn solid" onclick="submitPlant()">Add to shop</button>
+    </div>
+  </div>
+</div>
+
+<div class="chip primary" id="cartChip" style="display:none;position:fixed;bottom:24px;right:24px;z-index:40;box-shadow:0 8px 20px rgba(0,0,0,0.25);" onclick="openCartModal()">🛒 <span id="cartCount">0</span></div>
+
+<div class="overlay" id="cartOverlay">
+  <div class="modal">
+    <h2>Your order</h2>
+    <p class="hint">Review, then send it to the seller on WhatsApp.</p>
+    <div id="cartItems"></div>
+    <div id="cartEmpty" style="display:none;color:var(--ink-soft);font-size:14px;padding:10px 0;">No plants selected yet.</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeCartModal()">Close</button>
+      <button class="btn solid" id="cartSendBtn" onclick="sendCartOrder()">Send order via WhatsApp</button>
     </div>
   </div>
 </div>
@@ -329,21 +354,45 @@ const DEFAULT_PLANTS = [
   {id:'seed4', name:'Star Cactus', price:30, category:'succulent', note:'Compact and sunny-windowsill friendly.', status:'available'}
 ];
 
+// Built-in categories/statuses. Editors can add more from the "Add a plant"
+// form — new ones get saved alongside the plant and reused afterward.
+const DEFAULT_CATEGORIES = [
+  {id:'vine', label:'Trailing / vine'},
+  {id:'succulent', label:'Succulent / cactus'},
+  {id:'snake', label:'Snake plant'},
+  {id:'leafy', label:'Leafy / bushy'}
+];
+const DEFAULT_STATUSES = [
+  {id:'available', label:'Available', kind:'available'},
+  {id:'booked', label:'Booked / sold out', kind:'booked'}
+];
+const MAX_PRICE = 1000000; // ৳10 lakh ceiling — blocks fat-finger / abusive entries like 1e22
+
 let plants = [];
+let categories = [];
+let statuses = [];
+let cart = {}; // plantId -> { id, name, price, qty }
+let pendingImageDataUrl = null;
 
 function loadPlants(){
   onSnapshot(plantsDocRef, async (snap) => {
     if(snap.exists() && Array.isArray(snap.data().plants)){
-      plants = snap.data().plants;
+      const data = snap.data();
+      plants = data.plants;
+      categories = Array.isArray(data.categories) && data.categories.length ? data.categories : DEFAULT_CATEGORIES;
+      statuses = Array.isArray(data.statuses) && data.statuses.length ? data.statuses : DEFAULT_STATUSES;
     } else {
       // No document yet. Only an editor is allowed to seed it —
       // anonymous visitors must never attempt a write, or Firestore
       // will reject it and trigger a false "could not save" toast.
       plants = DEFAULT_PLANTS;
+      categories = DEFAULT_CATEGORIES;
+      statuses = DEFAULT_STATUSES;
       if(isEditor){
         await savePlants();
       }
     }
+    populateFormSelects();
     render();
   }, (err) => {
     console.error('Firestore read error', err);
@@ -360,11 +409,18 @@ async function savePlants(){
     return;
   }
   try{
-    await setDoc(plantsDocRef, { plants });
+    await setDoc(plantsDocRef, { plants, categories, statuses });
   }catch(e){
     console.error('Storage error', e);
     showToast('Could not save — check your connection');
   }
+}
+
+function getStatusMeta(id){
+  const found = statuses.find(s => s.id === id);
+  if(found) return found;
+  if(id === 'available') return {id:'available', label:'Available', kind:'available'};
+  return {id: id || 'booked', label: id || 'Booked', kind:'booked'};
 }
 
 function render(){
@@ -373,30 +429,49 @@ function render(){
   grid.innerHTML = '';
   if(plants.length === 0){
     empty.style.display = 'block';
+    updateCartUI();
     return;
   }
   empty.style.display = 'none';
   plants.forEach(p => {
     const card = document.createElement('div');
     card.className = 'card';
+    const statusMeta = getStatusMeta(p.status);
+    const isAvailable = statusMeta.kind === 'available';
+    const qty = cart[p.id] ? cart[p.id].qty : 0;
+    const media = p.image
+      ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`
+      : (ICONS[p.category] || ICONS.leafy);
+    const statusClass = statusMeta.kind === 'available' ? 'available' : (statusMeta.kind === 'booked' ? 'booked' : 'custom');
+    let orderControl;
+    if(!isAvailable){
+      orderControl = `<button class="order-btn" disabled>${escapeHtml(statusMeta.label)}</button>`;
+    }else if(qty > 0){
+      orderControl = `<div class="qty-stepper">
+        <button class="qty-btn" onclick="changeCartQty('${p.id}',-1)">−</button>
+        <span class="qty-count">${qty} in order</span>
+        <button class="qty-btn" onclick="changeCartQty('${p.id}',1)">+</button>
+      </div>`;
+    }else{
+      orderControl = `<button class="order-btn" onclick="changeCartQty('${p.id}',1)">Add to order</button>`;
+    }
     card.innerHTML = `
       <div class="string"></div>
-      <div class="card-icon">${ICONS[p.category] || ICONS.leafy}</div>
+      <div class="card-icon">${media}</div>
       <div class="card-body">
         <h3>${escapeHtml(p.name)}</h3>
         <div class="care-note">${escapeHtml(p.note || '')}</div>
         <div class="card-meta">
           <span class="price mono">৳${p.price}</span>
-          <span class="status ${p.status}">${p.status === 'available' ? 'Available' : 'Booked'}</span>
+          <span class="status ${statusClass}">${escapeHtml(statusMeta.label)}</span>
         </div>
-        <button class="order-btn" ${p.status !== 'available' ? 'disabled' : ''} onclick="orderPlant('${p.id}')">
-          ${p.status === 'available' ? 'Message to order' : 'Currently booked'}
-        </button>
+        ${orderControl}
         ${isEditor ? `<span class="remove-link" onclick="removePlant('${p.id}')">Remove listing</span>` : ''}
       </div>
     `;
     grid.appendChild(card);
   });
+  updateCartUI();
 }
 
 function escapeHtml(str){
@@ -405,17 +480,158 @@ function escapeHtml(str){
   return div.innerHTML;
 }
 
-function orderPlant(id){
+// ---- Cart ----
+function changeCartQty(id, delta){
   const p = plants.find(x => x.id === id);
-  window.open(ORDER_LINK, '_blank');
-  showToast(`Opening chat to ask about ${p ? p.name : 'this plant'}`);
+  if(!p) return;
+  const current = cart[id] ? cart[id].qty : 0;
+  const next = current + delta;
+  if(next <= 0){
+    delete cart[id];
+  }else{
+    cart[id] = { id: p.id, name: p.name, price: p.price, qty: next };
+  }
+  render();
+  if(document.getElementById('cartOverlay').classList.contains('open')){
+    renderCartModal();
+  }
 }
+
+function updateCartUI(){
+  const items = Object.values(cart);
+  const count = items.reduce((sum, i) => sum + i.qty, 0);
+  document.getElementById('cartCount').textContent = count;
+  document.getElementById('cartChip').style.display = count > 0 ? 'flex' : 'none';
+}
+
+function renderCartModal(){
+  const wrap = document.getElementById('cartItems');
+  const empty = document.getElementById('cartEmpty');
+  const items = Object.values(cart);
+  const sendBtn = document.getElementById('cartSendBtn');
+  if(items.length === 0){
+    wrap.innerHTML = '';
+    empty.style.display = 'block';
+    sendBtn.disabled = true;
+    return;
+  }
+  empty.style.display = 'none';
+  sendBtn.disabled = false;
+  let total = 0;
+  wrap.innerHTML = items.map(i => {
+    total += i.price * i.qty;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
+      <div>${escapeHtml(i.name)}<div style="font-size:12px;color:var(--ink-soft);">৳${i.price} each</div></div>
+      <div class="qty-stepper">
+        <button class="qty-btn" onclick="changeCartQty('${i.id}',-1)">−</button>
+        <span class="qty-count">${i.qty}</span>
+        <button class="qty-btn" onclick="changeCartQty('${i.id}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('') + `<div style="display:flex;justify-content:space-between;padding-top:12px;font-weight:600;"><span>Total</span><span class="mono">৳${total}</span></div>`;
+}
+
+function openCartModal(){
+  renderCartModal();
+  document.getElementById('cartOverlay').classList.add('open');
+}
+function closeCartModal(){
+  document.getElementById('cartOverlay').classList.remove('open');
+}
+
+function sendCartOrder(){
+  const items = Object.values(cart);
+  if(items.length === 0) return;
+  let total = 0;
+  const lines = items.map(i => {
+    total += i.price * i.qty;
+    return `- ${i.qty}x ${i.name} (৳${i.price} each)`;
+  });
+  const message = `Hi! I'd like to order:\n${lines.join('\n')}\nTotal: ৳${total}`;
+  window.open(`${ORDER_LINK}?text=${encodeURIComponent(message)}`, '_blank');
+  showToast('Opening WhatsApp with your order…');
+  cart = {};
+  closeCartModal();
+  render();
+}
+
+// ---- Add-plant form: category / status selects, "add new" handling ----
+function populateFormSelects(){
+  const catSel = document.getElementById('f-category');
+  const statSel = document.getElementById('f-status');
+  if(!catSel || !statSel) return;
+  const prevCat = catSel.value;
+  const prevStat = statSel.value;
+  catSel.innerHTML = categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.label)}</option>`).join('')
+    + `<option value="__new__">+ Add new category…</option>`;
+  statSel.innerHTML = statuses.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.label)}</option>`).join('')
+    + `<option value="__new__">+ Add new status…</option>`;
+  if(prevCat && categories.some(c => c.id === prevCat)) catSel.value = prevCat;
+  if(prevStat && statuses.some(s => s.id === prevStat)) statSel.value = prevStat;
+}
+
+function handleCategorySelectChange(){
+  const sel = document.getElementById('f-category');
+  const newInput = document.getElementById('f-category-new');
+  newInput.style.display = sel.value === '__new__' ? 'block' : 'none';
+  if(sel.value === '__new__') newInput.focus();
+}
+
+function handleStatusSelectChange(){
+  const sel = document.getElementById('f-status');
+  const newInput = document.getElementById('f-status-new');
+  newInput.style.display = sel.value === '__new__' ? 'block' : 'none';
+  if(sel.value === '__new__') newInput.focus();
+}
+
+// Resize/compress the chosen photo client-side so it stays well under
+// Firestore's 1MB document limit, and store it inline as a data URL —
+// avoids needing a separate Firebase Storage bucket + rules setup.
+function handleImageFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 500;
+        let { width, height } = img;
+        if(width > height && width > maxDim){ height *= maxDim / width; width = maxDim; }
+        else if(height > maxDim){ width *= maxDim / height; height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.addEventListener('change', async (e) => {
+  if(e.target && e.target.id === 'f-image'){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    try{
+      pendingImageDataUrl = await handleImageFile(file);
+      const preview = document.getElementById('f-image-preview');
+      preview.style.display = 'block';
+      preview.querySelector('img').src = pendingImageDataUrl;
+    }catch(err){
+      console.error('Image processing error', err);
+      showToast('Could not process that photo — try another');
+    }
+  }
+});
 
 function openAddModal(){
   if(!isEditor){
     showToast(currentUser ? 'This account can\'t edit the shop' : 'Sign in first to add a plant');
     return;
   }
+  populateFormSelects();
   document.getElementById('overlay').classList.add('open');
 }
 function closeAddModal(){
@@ -424,24 +640,67 @@ function closeAddModal(){
   document.getElementById('f-name').value = '';
   document.getElementById('f-price').value = '';
   document.getElementById('f-note').value = '';
+  document.getElementById('f-image').value = '';
+  document.getElementById('f-image-preview').style.display = 'none';
+  document.getElementById('f-category-new').value = '';
+  document.getElementById('f-category-new').style.display = 'none';
+  document.getElementById('f-status-new').value = '';
+  document.getElementById('f-status-new').style.display = 'none';
+  pendingImageDataUrl = null;
 }
 
 async function submitPlant(){
   if(!isEditor){ showToast('Sign in as an editor to add plants'); return; }
   const name = document.getElementById('f-name').value.trim();
-  const price = document.getElementById('f-price').value;
-  const category = document.getElementById('f-category').value;
+  const priceRaw = document.getElementById('f-price').value;
+  const price = Number(priceRaw);
   const note = document.getElementById('f-note').value.trim();
-  const status = document.getElementById('f-status').value;
 
-  if(!name || !price){
+  if(!name || !priceRaw || !Number.isFinite(price) || price <= 0 || price > MAX_PRICE){
+    document.getElementById('formError').textContent = !name || !priceRaw
+      ? 'Please add a plant name and price.'
+      : `Please enter a realistic price (up to ৳${MAX_PRICE.toLocaleString()}).`;
     document.getElementById('formError').style.display = 'block';
     return;
   }
+
+  // Category: either an existing one, or a freshly typed new one.
+  let category = document.getElementById('f-category').value;
+  if(category === '__new__'){
+    const label = document.getElementById('f-category-new').value.trim();
+    if(!label){
+      document.getElementById('formError').textContent = 'Please name the new category.';
+      document.getElementById('formError').style.display = 'block';
+      return;
+    }
+    const id = 'cat_' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '_' + Date.now().toString(36);
+    categories = [...categories, { id, label }];
+    category = id;
+  }
+
+  // Status: either an existing one, or a freshly typed new one.
+  let status = document.getElementById('f-status').value;
+  if(status === '__new__'){
+    const label = document.getElementById('f-status-new').value.trim();
+    if(!label){
+      document.getElementById('formError').textContent = 'Please name the new status.';
+      document.getElementById('formError').style.display = 'block';
+      return;
+    }
+    const id = 'stat_' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '_' + Date.now().toString(36);
+    // Custom statuses default to "unavailable for order" (kind:'booked')
+    // unless the label clearly reads as available — keeps ordering safe by default.
+    const kind = /available|in stock|ready/i.test(label) ? 'available' : 'booked';
+    statuses = [...statuses, { id, label, kind }];
+    status = id;
+  }
+
   const newPlant = {
     id: 'p' + Date.now(),
-    name, price: Number(price), category, note, status
+    name, price, category, note, status
   };
+  if(pendingImageDataUrl) newPlant.image = pendingImageDataUrl;
+
   plants.unshift(newPlant);
   await savePlants();
   render();
@@ -530,10 +789,15 @@ onAuthStateChanged(auth, (user) => {
 window.openAddModal = openAddModal;
 window.closeAddModal = closeAddModal;
 window.submitPlant = submitPlant;
-window.orderPlant = orderPlant;
 window.removePlant = removePlant;
 window.scrollToGrid = scrollToGrid;
 window.handleAuthClick = handleAuthClick;
+window.handleCategorySelectChange = handleCategorySelectChange;
+window.handleStatusSelectChange = handleStatusSelectChange;
+window.changeCartQty = changeCartQty;
+window.openCartModal = openCartModal;
+window.closeCartModal = closeCartModal;
+window.sendCartOrder = sendCartOrder;
 
 loadPlants();
 
