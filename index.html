@@ -211,10 +211,15 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
   letter-spacing:0.05em;color:var(--sprout-deep);background:#E7EFDA;
   padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:4px;
 }
-.remove-link{
-  display:block;text-align:center;font-size:12px;color:var(--ink-soft);margin-top:8px;cursor:pointer;
+.editor-row{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;margin-top:10px;
+}
+.editor-link{
+  font-size:12px;color:var(--ink-soft);cursor:pointer;
   text-decoration:underline;text-decoration-color:var(--line);
 }
+.editor-link:hover{color:var(--sprout-deep);}
+.editor-link.remove-link:hover{color:#A83B3B;}
 
 /* modal / form */
 .overlay{
@@ -347,8 +352,8 @@ footer a{color:var(--sprout-deep);}
 <!-- Add plant modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2>Add a new plant</h2>
-    <p class="hint">This updates the shop for everyone who opens this link.</p>
+    <h2 id="modalTitle">Add a new plant</h2>
+    <p class="hint" id="modalHint">This updates the shop for everyone who opens this link.</p>
     <div class="field">
       <label>Plant name</label>
       <input id="f-name" type="text" placeholder="e.g. Marble Queen Pothos">
@@ -356,7 +361,10 @@ footer a{color:var(--sprout-deep);}
     <div class="field">
       <label>Photo (optional — default icon used if skipped)</label>
       <input id="f-image" type="file" accept="image/*">
-      <div id="f-image-preview" style="display:none;margin-top:8px;"><img alt="Preview" style="max-width:100px;max-height:100px;border-radius:8px;"></div>
+      <div id="f-image-preview" style="display:none;margin-top:8px;">
+        <img alt="Preview" style="max-width:100px;max-height:100px;border-radius:8px;display:block;">
+        <span class="editor-link" style="display:inline-block;margin-top:6px;" onclick="removePendingImage()">✕ Remove photo</span>
+      </div>
     </div>
     <div class="field-row">
       <div class="field">
@@ -381,7 +389,7 @@ footer a{color:var(--sprout-deep);}
     <div class="error-msg" id="formError">Please add a plant name and price.</div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeAddModal()">Cancel</button>
-      <button class="btn solid" onclick="submitPlant()">Add to shop</button>
+      <button class="btn solid" id="modalSubmitBtn" onclick="submitPlant()">Add to shop</button>
     </div>
   </div>
 </div>
@@ -470,6 +478,8 @@ let categories = [];
 let statuses = [];
 let cart = {}; // plantId -> { id, name, price, qty }
 let pendingImageDataUrl = null;
+let imageRemoved = false;
+let editingPlantId = null; // null = adding a new plant; otherwise the id of the plant being edited
 
 function loadPlants(){
   onSnapshot(plantsDocRef, async (snap) => {
@@ -567,6 +577,20 @@ function render(){
     }else{
       orderControl = `<button class="order-btn" onclick="changeCartQty('${p.id}',1)">Add to order</button>`;
     }
+    let editorRow = '';
+    if(isEditor){
+      let quickToggle = '';
+      if(p.status === 'available' || p.status === 'booked'){
+        quickToggle = p.status === 'available'
+          ? `<span class="editor-link" onclick="toggleStock('${p.id}')">Mark as stocked out</span>`
+          : `<span class="editor-link" onclick="toggleStock('${p.id}')">Mark as available</span>`;
+      }
+      editorRow = `<div class="editor-row">
+        ${quickToggle}
+        <span class="editor-link" onclick="editPlant('${p.id}')">Edit details</span>
+        <span class="editor-link remove-link" onclick="removePlant('${p.id}')">Remove listing</span>
+      </div>`;
+    }
     card.innerHTML = `
       <div class="string"></div>
       <div class="card-icon">${media}</div>
@@ -578,7 +602,7 @@ function render(){
           <span class="status ${statusClass}">${escapeHtml(statusMeta.label)}</span>
         </div>
         ${orderControl}
-        ${isEditor ? `<span class="remove-link" onclick="removePlant('${p.id}')">Remove listing</span>` : ''}
+        ${editorRow}
       </div>
     `;
     grid.appendChild(card);
@@ -722,12 +746,20 @@ function handleImageFile(file){
   });
 }
 
+function removePendingImage(){
+  pendingImageDataUrl = null;
+  imageRemoved = true;
+  document.getElementById('f-image').value = '';
+  document.getElementById('f-image-preview').style.display = 'none';
+}
+
 document.addEventListener('change', async (e) => {
   if(e.target && e.target.id === 'f-image'){
     const file = e.target.files && e.target.files[0];
     if(!file) return;
     try{
       pendingImageDataUrl = await handleImageFile(file);
+      imageRemoved = false;
       const preview = document.getElementById('f-image-preview');
       preview.style.display = 'block';
       preview.querySelector('img').src = pendingImageDataUrl;
@@ -738,12 +770,36 @@ document.addEventListener('change', async (e) => {
   }
 });
 
-function openAddModal(){
+function openAddModal(plantId){
   if(!isEditor){
     showToast(currentUser ? 'This account can\'t edit the shop' : 'Sign in first to add a plant');
     return;
   }
   populateFormSelects();
+  editingPlantId = plantId || null;
+  imageRemoved = false;
+  const plant = editingPlantId ? plants.find(p => p.id === editingPlantId) : null;
+
+  document.getElementById('modalTitle').textContent = plant ? 'Edit plant' : 'Add a new plant';
+  document.getElementById('modalHint').textContent = plant
+    ? 'Changes update the shop for everyone who opens this link.'
+    : 'This updates the shop for everyone who opens this link.';
+  document.getElementById('modalSubmitBtn').textContent = plant ? 'Save changes' : 'Add to shop';
+
+  if(plant){
+    document.getElementById('f-name').value = plant.name || '';
+    document.getElementById('f-price').value = plant.price != null ? plant.price : '';
+    document.getElementById('f-note').value = plant.note || '';
+    if(categories.some(c => c.id === plant.category)) document.getElementById('f-category').value = plant.category;
+    if(statuses.some(s => s.id === plant.status)) document.getElementById('f-status').value = plant.status;
+    if(plant.image){
+      pendingImageDataUrl = plant.image;
+      const preview = document.getElementById('f-image-preview');
+      preview.style.display = 'block';
+      preview.querySelector('img').src = plant.image;
+    }
+  }
+
   document.getElementById('overlay').classList.add('open');
 }
 function closeAddModal(){
@@ -758,7 +814,29 @@ function closeAddModal(){
   document.getElementById('f-category-new').style.display = 'none';
   document.getElementById('f-status-new').value = '';
   document.getElementById('f-status-new').style.display = 'none';
+  document.getElementById('modalTitle').textContent = 'Add a new plant';
+  document.getElementById('modalHint').textContent = 'This updates the shop for everyone who opens this link.';
+  document.getElementById('modalSubmitBtn').textContent = 'Add to shop';
   pendingImageDataUrl = null;
+  imageRemoved = false;
+  editingPlantId = null;
+}
+
+function editPlant(id){
+  openAddModal(id);
+}
+
+// Fast path for the single most common edit: flipping stock status without
+// opening the full form. Only applies to the two built-in statuses — custom
+// ones go through "Edit details" since their intended meaning isn't fixed.
+async function toggleStock(id){
+  if(!isEditor){ showToast('Sign in as an editor to update stock'); return; }
+  const p = plants.find(x => x.id === id);
+  if(!p || (p.status !== 'available' && p.status !== 'booked')) return;
+  p.status = p.status === 'available' ? 'booked' : 'available';
+  await savePlants();
+  render();
+  showToast(p.status === 'available' ? 'Marked as available' : 'Marked as stocked out');
 }
 
 async function submitPlant(){
@@ -805,6 +883,27 @@ async function submitPlant(){
     const kind = /available|in stock|ready/i.test(label) ? 'available' : 'booked';
     statuses = [...statuses, { id, label, kind }];
     status = id;
+  }
+
+  const isEditing = !!editingPlantId;
+  if(isEditing){
+    const existing = plants.find(p => p.id === editingPlantId);
+    if(!existing){ showToast('That listing no longer exists'); closeAddModal(); render(); return; }
+    existing.name = name;
+    existing.price = price;
+    existing.note = note;
+    existing.category = category;
+    existing.status = status;
+    if(imageRemoved){
+      delete existing.image;
+    }else if(pendingImageDataUrl){
+      existing.image = pendingImageDataUrl;
+    }
+    await savePlants();
+    render();
+    closeAddModal();
+    showToast('Plant updated');
+    return;
   }
 
   const newPlant = {
@@ -914,6 +1013,9 @@ window.openAddModal = openAddModal;
 window.closeAddModal = closeAddModal;
 window.submitPlant = submitPlant;
 window.removePlant = removePlant;
+window.editPlant = editPlant;
+window.toggleStock = toggleStock;
+window.removePendingImage = removePendingImage;
 window.scrollToGrid = scrollToGrid;
 window.handleAuthClick = handleAuthClick;
 window.handleCategorySelectChange = handleCategorySelectChange;
