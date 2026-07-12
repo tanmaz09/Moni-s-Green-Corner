@@ -97,40 +97,51 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
   margin-bottom:36px;
 }
 .info-item{
-  display:block;text-align:left;width:100%;cursor:pointer;
-  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  display:block;text-align:left;width:100%;cursor:pointer;position:relative;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sprout);border-radius:14px;
   padding:14px 16px;font-size:13px;color:var(--ink-soft);line-height:1.5;
-  font-family:inherit;transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+  font-family:inherit;transition:transform .15s ease, box-shadow .25s ease, border-color .25s ease, background .3s ease;
   opacity:0;transform:translateY(10px);animation:infoItemIn .5s ease forwards;
 }
-.info-item:nth-child(1){animation-delay:.05s;}
-.info-item:nth-child(2){animation-delay:.15s;}
-.info-item:nth-child(3){animation-delay:.25s;}
+.info-item:nth-child(1){animation-delay:.05s;border-left-color:var(--sprout);}
+.info-item:nth-child(2){animation-delay:.15s;border-left-color:var(--clay);}
+.info-item:nth-child(3){animation-delay:.25s;border-left-color:var(--pine);}
 @keyframes infoItemIn{to{opacity:1;transform:translateY(0);}}
-.info-item:hover{box-shadow:0 8px 20px -10px rgba(20,40,25,0.25);border-color:var(--sprout);}
-.info-item:active{transform:scale(0.97);}
-.info-item.open{border-color:var(--sprout);box-shadow:0 10px 24px -12px rgba(20,40,25,0.3);}
+.info-item:hover{box-shadow:0 10px 22px -10px rgba(20,40,25,0.3);transform:translateY(-2px);}
+.info-item:active{transform:scale(0.96);}
+.info-item.open{
+  box-shadow:0 12px 26px -12px rgba(20,40,25,0.35);
+  background:linear-gradient(160deg,#F2F7EA 0%,var(--surface) 65%);
+}
 .info-item-head{display:flex;align-items:center;gap:12px;}
 .info-icon-wrap{
   width:38px;height:38px;flex-shrink:0;border-radius:50%;
   background:linear-gradient(135deg,var(--sprout),var(--sprout-deep));
   display:flex;align-items:center;justify-content:center;font-size:17px;
-  box-shadow:0 4px 10px rgba(86,113,47,0.3);transition:transform .3s ease;
+  box-shadow:0 4px 10px rgba(86,113,47,0.35);transition:transform .3s ease;
 }
-.info-item.open .info-icon-wrap{transform:scale(1.08) rotate(-6deg);}
+.info-item.open .info-icon-wrap{transform:scale(1.1) rotate(-8deg);}
 .info-item-text{flex:1;}
-.info-item-text strong{display:block;color:var(--ink);font-size:13px;}
+.info-item-text strong{display:block;color:var(--ink);font-size:13.5px;}
 .info-teaser{font-size:12px;color:var(--ink-soft);}
-.info-chevron{
-  font-size:12px;color:var(--ink-soft);transition:transform .25s ease;flex-shrink:0;
+.info-tap-hint{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--sprout-deep);margin-top:5px;display:flex;align-items:center;gap:4px;opacity:0.8;
 }
-.info-item.open .info-chevron{transform:rotate(180deg);color:var(--sprout-deep);}
+.info-item.open .info-tap-hint{display:none;}
+.info-chevron{
+  font-size:13px;color:var(--sprout-deep);transition:transform .25s ease;flex-shrink:0;
+  animation:chevronHint 1.8s ease-in-out infinite;
+}
+@keyframes chevronHint{0%,100%{transform:translateY(0);}50%{transform:translateY(3px);}}
+.info-item.open .info-chevron{transform:rotate(180deg);animation:none;}
 .info-item-detail{
   max-height:0;overflow:hidden;opacity:0;
   transition:max-height .3s ease, opacity .25s ease, margin-top .3s ease;
   font-size:12.5px;color:var(--ink-soft);margin-top:0;padding-left:50px;
 }
 .info-item.open .info-item-detail{max-height:160px;opacity:1;margin-top:10px;}
+
 
 .empty-state{
   border:1px dashed var(--line);border-radius:14px;padding:48px 20px;text-align:center;
@@ -284,35 +295,38 @@ footer a{color:var(--sprout-deep);}
 <div class="auth-hint" id="authHint">Signed in, but this account can't edit the shop. Ask Moni to add your email to the editor list.</div>
 
 <main>
-  <div class="info-strip">
-    <div class="info-item" onclick="toggleInfoItem(this)">
+  <div class="info-strip" id="infoStrip">
+    <div class="info-item">
       <div class="info-item-head">
         <span class="info-icon-wrap">📍</span>
         <div class="info-item-text">
           <strong>Pickup</strong>
           <span class="info-teaser">Third Ladies' Hall, SUST</span>
+          <span class="info-tap-hint">▾ Tap for details</span>
         </div>
         <span class="info-chevron">▾</span>
       </div>
       <div class="info-item-detail">Message to arrange a convenient time — usually evenings after classes. Please confirm before coming so the plant (and I) are ready for you.</div>
     </div>
-    <div class="info-item" onclick="toggleInfoItem(this)">
+    <div class="info-item">
       <div class="info-item-head">
         <span class="info-icon-wrap">🤝</span>
         <div class="info-item-text">
           <strong>Cash on pickup</strong>
           <span class="info-teaser">No advance payment needed</span>
+          <span class="info-tap-hint">▾ Tap for details</span>
         </div>
         <span class="info-chevron">▾</span>
       </div>
       <div class="info-item-detail">Just message to reserve a plant — pay in cash when you come to collect it. No bKash/Nagad advance ever required to hold your order.</div>
     </div>
-    <div class="info-item" onclick="toggleInfoItem(this)">
+    <div class="info-item">
       <div class="info-item-head">
         <span class="info-icon-wrap">🌱</span>
         <div class="info-item-text">
           <strong>Hand-grown &amp; checked</strong>
           <span class="info-teaser">Every plant inspected before handover</span>
+          <span class="info-tap-hint">▾ Tap for details</span>
         </div>
         <span class="info-chevron">▾</span>
       </div>
@@ -814,8 +828,16 @@ async function removePlant(id){
   showToast('Listing removed');
 }
 
-function toggleInfoItem(el){
-  el.classList.toggle('open');
+// Delegated listener (bound once) instead of inline onclick — guarantees
+// each info card opens/closes independently with no risk of a handler
+// getting bound more than once.
+const infoStripEl = document.getElementById('infoStrip');
+if(infoStripEl){
+  infoStripEl.addEventListener('click', (e) => {
+    const card = e.target.closest('.info-item');
+    if(!card || !infoStripEl.contains(card)) return;
+    card.classList.toggle('open');
+  });
 }
 
 function scrollToGrid(){
@@ -893,7 +915,6 @@ window.closeAddModal = closeAddModal;
 window.submitPlant = submitPlant;
 window.removePlant = removePlant;
 window.scrollToGrid = scrollToGrid;
-window.toggleInfoItem = toggleInfoItem;
 window.handleAuthClick = handleAuthClick;
 window.handleCategorySelectChange = handleCategorySelectChange;
 window.handleStatusSelectChange = handleStatusSelectChange;
