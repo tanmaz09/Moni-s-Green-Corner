@@ -220,6 +220,18 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
 }
 .editor-link:hover{color:var(--sprout-deep);}
 .editor-link.remove-link:hover{color:#A83B3B;}
+.stock-switch{
+  display:flex;margin-top:10px;border:1px solid var(--line);border-radius:999px;
+  overflow:hidden;background:var(--bg);
+}
+.stock-switch button{
+  flex:1;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.03em;
+  padding:6px 8px;transition:background .2s ease, color .2s ease;
+}
+.stock-switch button.active.avail{background:#E7EFDA;color:var(--sprout-deep);font-weight:600;}
+.stock-switch button.active.out{background:#F0E4DC;color:var(--clay);font-weight:600;}
+.stock-switch button:not(.active):hover{color:var(--ink);}
 
 /* modal / form */
 .overlay{
@@ -581,12 +593,12 @@ function render(){
     if(isEditor){
       let quickToggle = '';
       if(p.status === 'available' || p.status === 'booked'){
-        quickToggle = p.status === 'available'
-          ? `<span class="editor-link" onclick="toggleStock('${p.id}')">Mark as stocked out</span>`
-          : `<span class="editor-link" onclick="toggleStock('${p.id}')">Mark as available</span>`;
+        quickToggle = `<div class="stock-switch">
+          <button type="button" class="${p.status === 'available' ? 'active avail' : ''}" onclick="setStock('${p.id}','available')">Available</button>
+          <button type="button" class="${p.status === 'booked' ? 'active out' : ''}" onclick="setStock('${p.id}','booked')">Stocked out</button>
+        </div>`;
       }
-      editorRow = `<div class="editor-row">
-        ${quickToggle}
+      editorRow = `${quickToggle}<div class="editor-row">
         <span class="editor-link" onclick="editPlant('${p.id}')">Edit details</span>
         <span class="editor-link remove-link" onclick="removePlant('${p.id}')">Remove listing</span>
       </div>`;
@@ -826,17 +838,18 @@ function editPlant(id){
   openAddModal(id);
 }
 
-// Fast path for the single most common edit: flipping stock status without
-// opening the full form. Only applies to the two built-in statuses — custom
-// ones go through "Edit details" since their intended meaning isn't fixed.
-async function toggleStock(id){
+// Fast path for the single most common edit: setting stock status directly
+// without opening the full form. Only applies to the two built-in statuses —
+// custom ones go through "Edit details" since their intended meaning isn't fixed.
+async function setStock(id, newStatus){
   if(!isEditor){ showToast('Sign in as an editor to update stock'); return; }
+  if(newStatus !== 'available' && newStatus !== 'booked') return;
   const p = plants.find(x => x.id === id);
-  if(!p || (p.status !== 'available' && p.status !== 'booked')) return;
-  p.status = p.status === 'available' ? 'booked' : 'available';
+  if(!p || p.status === newStatus) return;
+  p.status = newStatus;
   await savePlants();
   render();
-  showToast(p.status === 'available' ? 'Marked as available' : 'Marked as stocked out');
+  showToast(newStatus === 'available' ? 'Marked as available' : 'Marked as stocked out');
 }
 
 async function submitPlant(){
@@ -1014,7 +1027,7 @@ window.closeAddModal = closeAddModal;
 window.submitPlant = submitPlant;
 window.removePlant = removePlant;
 window.editPlant = editPlant;
-window.toggleStock = toggleStock;
+window.setStock = setStock;
 window.removePendingImage = removePendingImage;
 window.scrollToGrid = scrollToGrid;
 window.handleAuthClick = handleAuthClick;
