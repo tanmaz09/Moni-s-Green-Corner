@@ -220,18 +220,36 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
 }
 .editor-link:hover{color:var(--sprout-deep);}
 .editor-link.remove-link:hover{color:#A83B3B;}
-.stock-switch{
-  display:flex;margin-top:10px;border:1px solid var(--line);border-radius:999px;
-  overflow:hidden;background:var(--bg);
+.avail-toggle{margin-top:10px;position:relative;}
+.avail-toggle-btn{
+  width:100%;display:flex;align-items:center;gap:8px;
+  border:1px solid var(--line);border-radius:999px;background:var(--bg);
+  padding:8px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  font-size:11px;color:var(--ink-soft);transition:border-color .2s ease;
 }
-.stock-switch button{
-  flex:1;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;
-  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.03em;
-  padding:6px 8px;transition:background .2s ease, color .2s ease;
+.avail-toggle-btn:hover{border-color:var(--sprout);}
+.avail-toggle-btn strong{color:var(--ink);font-weight:600;}
+.avail-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--ink-soft);}
+.avail-toggle-btn.available .avail-dot{background:var(--sprout);}
+.avail-toggle-btn.booked .avail-dot{background:var(--clay);}
+.avail-toggle-btn span:nth-of-type(2){flex:1;text-align:left;}
+.avail-chevron{transition:transform .25s ease;flex-shrink:0;}
+.avail-toggle.open .avail-chevron{transform:rotate(180deg);}
+.avail-menu{
+  display:flex;flex-direction:column;gap:5px;
+  max-height:0;overflow:hidden;opacity:0;
+  transition:max-height .25s ease, opacity .2s ease, margin-top .25s ease;
 }
-.stock-switch button.active.avail{background:#E7EFDA;color:var(--sprout-deep);font-weight:600;}
-.stock-switch button.active.out{background:#F0E4DC;color:var(--clay);font-weight:600;}
-.stock-switch button:not(.active):hover{color:var(--ink);}
+.avail-toggle.open .avail-menu{max-height:140px;opacity:1;margin-top:6px;}
+.avail-option{
+  display:flex;align-items:center;gap:6px;width:100%;text-align:left;
+  padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  cursor:pointer;font-size:12px;color:var(--ink-soft);font-family:'Inter',sans-serif;
+  transition:border-color .15s ease, background .15s ease;
+}
+.avail-option:hover{border-color:var(--sprout);}
+.avail-option.active[data-status="available"]{background:#E7EFDA;color:var(--sprout-deep);border-color:var(--sprout);font-weight:600;}
+.avail-option.active[data-status="booked"]{background:#F0E4DC;color:var(--clay);border-color:var(--clay);font-weight:600;}
 
 /* modal / form */
 .overlay{
@@ -593,9 +611,17 @@ function render(){
     if(isEditor){
       let quickToggle = '';
       if(p.status === 'available' || p.status === 'booked'){
-        quickToggle = `<div class="stock-switch">
-          <button type="button" class="${p.status === 'available' ? 'active avail' : ''}" onclick="setStock('${p.id}','available')">Available</button>
-          <button type="button" class="${p.status === 'booked' ? 'active out' : ''}" onclick="setStock('${p.id}','booked')">Stocked out</button>
+        const label = p.status === 'available' ? 'Available' : 'Stocked out';
+        quickToggle = `<div class="avail-toggle" data-plant="${p.id}">
+          <button type="button" class="avail-toggle-btn ${p.status}">
+            <span class="avail-dot"></span>
+            <span>Availability: <strong>${label}</strong></span>
+            <span class="avail-chevron">▾</span>
+          </button>
+          <div class="avail-menu">
+            <button type="button" class="avail-option ${p.status === 'available' ? 'active' : ''}" data-status="available">✅ Available</button>
+            <button type="button" class="avail-option ${p.status === 'booked' ? 'active' : ''}" data-status="booked">🚫 Stock out</button>
+          </div>
         </div>`;
       }
       editorRow = `${quickToggle}<div class="editor-row">
@@ -949,6 +975,31 @@ if(infoStripEl){
     const card = e.target.closest('.info-item');
     if(!card || !infoStripEl.contains(card)) return;
     card.classList.toggle('open');
+  });
+}
+
+// Delegated listener (bound once, survives re-renders since #grid itself is
+// never replaced — only its innerHTML) for the availability toggle: tapping
+// the pill opens/closes it, tapping an option sets stock and lets the
+// following render() collapse it back down naturally.
+const gridEl = document.getElementById('grid');
+if(gridEl){
+  gridEl.addEventListener('click', (e) => {
+    const optBtn = e.target.closest('.avail-option');
+    if(optBtn){
+      const wrapper = optBtn.closest('.avail-toggle');
+      if(wrapper) setStock(wrapper.dataset.plant, optBtn.dataset.status);
+      return;
+    }
+    const toggleBtn = e.target.closest('.avail-toggle-btn');
+    if(toggleBtn){
+      const wrapper = toggleBtn.closest('.avail-toggle');
+      if(!wrapper) return;
+      document.querySelectorAll('.avail-toggle.open').forEach(el => {
+        if(el !== wrapper) el.classList.remove('open');
+      });
+      wrapper.classList.toggle('open');
+    }
   });
 }
 
