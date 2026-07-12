@@ -97,12 +97,40 @@ main{max-width:1000px;margin:0 auto;padding:48px 20px 100px;}
   margin-bottom:36px;
 }
 .info-item{
-  display:flex;align-items:flex-start;gap:10px;
-  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  display:block;text-align:left;width:100%;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
   padding:14px 16px;font-size:13px;color:var(--ink-soft);line-height:1.5;
+  font-family:inherit;transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+  opacity:0;transform:translateY(10px);animation:infoItemIn .5s ease forwards;
 }
-.info-item strong{color:var(--ink);}
-.info-icon{font-size:18px;flex-shrink:0;line-height:1.4;}
+.info-item:nth-child(1){animation-delay:.05s;}
+.info-item:nth-child(2){animation-delay:.15s;}
+.info-item:nth-child(3){animation-delay:.25s;}
+@keyframes infoItemIn{to{opacity:1;transform:translateY(0);}}
+.info-item:hover{box-shadow:0 8px 20px -10px rgba(20,40,25,0.25);border-color:var(--sprout);}
+.info-item:active{transform:scale(0.97);}
+.info-item.open{border-color:var(--sprout);box-shadow:0 10px 24px -12px rgba(20,40,25,0.3);}
+.info-item-head{display:flex;align-items:center;gap:12px;}
+.info-icon-wrap{
+  width:38px;height:38px;flex-shrink:0;border-radius:50%;
+  background:linear-gradient(135deg,var(--sprout),var(--sprout-deep));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 4px 10px rgba(86,113,47,0.3);transition:transform .3s ease;
+}
+.info-item.open .info-icon-wrap{transform:scale(1.08) rotate(-6deg);}
+.info-item-text{flex:1;}
+.info-item-text strong{display:block;color:var(--ink);font-size:13px;}
+.info-teaser{font-size:12px;color:var(--ink-soft);}
+.info-chevron{
+  font-size:12px;color:var(--ink-soft);transition:transform .25s ease;flex-shrink:0;
+}
+.info-item.open .info-chevron{transform:rotate(180deg);color:var(--sprout-deep);}
+.info-item-detail{
+  max-height:0;overflow:hidden;opacity:0;
+  transition:max-height .3s ease, opacity .25s ease, margin-top .3s ease;
+  font-size:12.5px;color:var(--ink-soft);margin-top:0;padding-left:50px;
+}
+.info-item.open .info-item-detail{max-height:160px;opacity:1;margin-top:10px;}
 
 .empty-state{
   border:1px dashed var(--line);border-radius:14px;padding:48px 20px;text-align:center;
@@ -257,17 +285,38 @@ footer a{color:var(--sprout-deep);}
 
 <main>
   <div class="info-strip">
-    <div class="info-item">
-      <span class="info-icon">📍</span>
-      <div><strong>Pickup:</strong> Third Ladies' Hall, SUST — message to arrange a time</div>
+    <div class="info-item" onclick="toggleInfoItem(this)">
+      <div class="info-item-head">
+        <span class="info-icon-wrap">📍</span>
+        <div class="info-item-text">
+          <strong>Pickup</strong>
+          <span class="info-teaser">Third Ladies' Hall, SUST</span>
+        </div>
+        <span class="info-chevron">▾</span>
+      </div>
+      <div class="info-item-detail">Message to arrange a convenient time — usually evenings after classes. Please confirm before coming so the plant (and I) are ready for you.</div>
     </div>
-    <div class="info-item">
-      <span class="info-icon">🤝</span>
-      <div><strong>Cash on pickup</strong> — no advance payment needed</div>
+    <div class="info-item" onclick="toggleInfoItem(this)">
+      <div class="info-item-head">
+        <span class="info-icon-wrap">🤝</span>
+        <div class="info-item-text">
+          <strong>Cash on pickup</strong>
+          <span class="info-teaser">No advance payment needed</span>
+        </div>
+        <span class="info-chevron">▾</span>
+      </div>
+      <div class="info-item-detail">Just message to reserve a plant — pay in cash when you come to collect it. No bKash/Nagad advance ever required to hold your order.</div>
     </div>
-    <div class="info-item">
-      <span class="info-icon">🌱</span>
-      <div>Every plant <strong>hand-grown and checked</strong> before handover</div>
+    <div class="info-item" onclick="toggleInfoItem(this)">
+      <div class="info-item-head">
+        <span class="info-icon-wrap">🌱</span>
+        <div class="info-item-text">
+          <strong>Hand-grown &amp; checked</strong>
+          <span class="info-teaser">Every plant inspected before handover</span>
+        </div>
+        <span class="info-chevron">▾</span>
+      </div>
+      <div class="info-item-detail">Each cutting or starter plant is grown and cared for personally in Third Ladies' Hall, then checked for health right before it goes home with you.</div>
     </div>
   </div>
   <div class="section-label">Available now</div>
@@ -765,6 +814,10 @@ async function removePlant(id){
   showToast('Listing removed');
 }
 
+function toggleInfoItem(el){
+  el.classList.toggle('open');
+}
+
 function scrollToGrid(){
   document.getElementById('grid').scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -840,6 +893,7 @@ window.closeAddModal = closeAddModal;
 window.submitPlant = submitPlant;
 window.removePlant = removePlant;
 window.scrollToGrid = scrollToGrid;
+window.toggleInfoItem = toggleInfoItem;
 window.handleAuthClick = handleAuthClick;
 window.handleCategorySelectChange = handleCategorySelectChange;
 window.handleStatusSelectChange = handleStatusSelectChange;
