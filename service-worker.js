@@ -1,4 +1,4 @@
-const CACHE_NAME = 'green-corner-cache-v6';
+const CACHE_NAME = 'green-corner-cache-v7';
 const ASSETS = [
   './index.html',
   './manifest.json',
